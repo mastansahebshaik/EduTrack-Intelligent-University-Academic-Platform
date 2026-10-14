@@ -190,7 +190,7 @@ Errors return JSON `400/404/405` bodies. Handlers are thread-safe (copy-on-write
 
 ## 📚 Documentation
 
-A full project report (architecture, data model, per-module algorithms with complexities, API reference, embedded screenshots, verification methodology) is available in LaTeX: [`docs/EduTrack_Report.tex`](docs/EduTrack_Report.tex). Compile it with any LaTeX distribution:
+A full project report (architecture, data model, per-module algorithms with complexities, API reference, embedded screenshots, verification methodology) is available in LaTeX: [`docs/EduTrack_Report.tex`](docs/EduTrack_Report.tex). Compile it with any LaTeX of the distribution:
 
 ```bash
 cd docs && pdflatex EduTrack_Report.tex   # or upload to Overleaf
