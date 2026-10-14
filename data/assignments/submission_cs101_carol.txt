@@ -1,0 +1,12 @@
+# Assignment 1: Advanced Network Topologies and Graph Algorithms
+Student ID: STU1004 (Pooja Patel)
+Course: CS301 Advanced Algorithms and Complexity
+
+Overview:
+Graph network optimization provides the underlying framework for transport scheduling, faculty assignment, and bipartite resource allocation.
+
+Bipartite Matching and Dual Min-Cut Theorems:
+By modeling assignment problems as max-flow networks with source-to-faculty and course-to-sink unit capacities, Dinic's blocking flow algorithm guarantees optimal polynomial assignment in O(V^2 E) time. Furthermore, Konig's theorem establishes the fundamental duality between maximum matchings and minimum vertex covers in bipartite networks, identifying the minimum bottleneck set of academic entities that cause scheduling conflicts.
+
+Computational Complexity and SAT Reductions:
+When scheduling constraints incorporate mutual exclusivity clauses, the decision variant reduces to 3-SAT. By constructing clause-gadget graphs, we map 3-SAT to CLIQUE, demonstrating NP-completeness and proving that approximation schemes or heuristics are necessary for intractable university scheduling instances.

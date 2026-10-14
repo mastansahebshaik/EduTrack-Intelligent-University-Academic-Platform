@@ -1,0 +1,21 @@
+id,name,department,gpa,credits,attendance,enrolledCourses
+STU1001,Aarav Sharma,Computer Science,3.92,72,0.96,CS201;CS301;MATH201
+STU1002,Aditi Rao,Computer Science,3.85,68,0.94,CS201;AI201;MATH202
+STU1003,Rohan Verma,Data Science,3.78,64,0.91,DS201;MATH201;CS201
+STU1004,Pooja Patel,Artificial Intelligence,3.95,80,0.98,AI301;AI401;CS301
+STU1005,Vikram Singh,Computer Science,3.42,56,0.85,CS201;CS302;SE201
+STU1006,Neha Gupta,Cybersecurity,3.88,76,0.95,CY101;CS302;MATH202
+STU1007,Siddharth Joshi,Electronics,3.65,60,0.89,EC201;MATH201;EC101
+STU1008,Ananya Iyer,Data Science,3.91,84,0.97,DS301;DS401;MATH202
+STU1009,Karan Malhotra,Software Engineering,3.35,52,0.82,SE201;CS201;CS101
+STU1010,Meera Nambiar,Artificial Intelligence,3.89,74,0.93,AI301;AI402;MATH301
+STU1011,Rahul Nair,Computer Science,3.72,66,0.90,CS301;CS302;CY101
+STU1012,Divya Menon,Mathematics,3.98,88,0.99,MATH301;MATH401;DS201
+STU1013,Suresh Reddy,Electronics,3.50,58,0.87,EC201;EC301;MATH201
+STU1014,Tanvi Deshmukh,Data Science,3.81,70,0.92,DS201;DS301;AI201
+STU1015,Gaurav Kulkarni,Computer Science,3.60,62,0.88,CS201;CS302;MATH201
+STU1016,Sneha Hegde,Artificial Intelligence,3.94,82,0.96,AI401;AI402;CS301
+STU1017,Arjun Sen,Cybersecurity,3.75,68,0.91,CY101;CY201;CS302
+STU1018,Kavya Pillai,Software Engineering,3.84,72,0.94,SE201;SE301;CS201
+STU1019,Manish Bhat,Electronics,3.45,54,0.84,EC101;EC201;MATH101
+STU1020,Shruti Chawla,Mathematics,3.96,86,0.98,MATH201;MATH202;MATH401

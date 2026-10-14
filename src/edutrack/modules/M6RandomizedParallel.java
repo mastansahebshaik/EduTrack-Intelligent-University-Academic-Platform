@@ -30,6 +30,9 @@ public class M6RandomizedParallel {
             System.out.println("1. Randomized QuickSort (CGPA ranking + 1M benchmark)");
             System.out.println("2. Parallel Merge Sort (Fork/Join vs sequential)");
             System.out.println("3. Reservoir Sampling (activity stream, Algorithm R)");
+            System.out.println("4. Blelloch Parallel Prefix Scan (Work O(N), Span O(log N))");
+            System.out.println("5. Brent's Theorem Speedup Bounds Analyzer");
+            System.out.println("6. Miller-Rabin Cryptographic Primality Test");
             System.out.println("0. Back to Main Menu");
             System.out.print("Enter your choice : ");
 
@@ -45,6 +48,15 @@ public class M6RandomizedParallel {
                 case 3:
                     runReservoirSampling(sc, ds);
                     break;
+                case 4:
+                    runBlellochScan();
+                    break;
+                case 5:
+                    runBrentsTheorem();
+                    break;
+                case 6:
+                    runMillerRabin(sc);
+                    break;
                 case 0:
                     System.out.println("Returning to main menu...");
                     break;
@@ -52,6 +64,35 @@ public class M6RandomizedParallel {
                     System.out.println("\nInvalid Choice!");
             }
         } while (choice != 0);
+    }
+
+    private static void runBlellochScan() {
+        System.out.println("\n--- Blelloch Parallel Prefix Scan ---");
+        long[] credits = { 12, 18, 24, 16, 20, 22, 14, 26 };
+        System.out.println("Input Student Credits : " + Arrays.toString(credits));
+        long[] prefix = M6BlellochScan.inclusiveScan(credits);
+        System.out.println("Up-Sweep (Tree Reduce): Work O(N), Span O(log N)");
+        System.out.println("Down-Sweep (Distribute): Work O(N), Span O(log N)");
+        System.out.println("Cumulative Sums (Scan): " + Arrays.toString(prefix));
+    }
+
+    private static void runBrentsTheorem() {
+        System.out.println("\n--- Brent's Theorem Speedup Analyzer ---");
+        M6BrentsTheorem.ParallelMetrics m = M6BrentsTheorem.analyze(100_000, 20, 8);
+        System.out.println(m.toString());
+    }
+
+    private static void runMillerRabin(Scanner sc) {
+        System.out.println("\n--- Miller-Rabin Primality Test ---");
+        System.out.print("Enter integer to test (e.g. 1000000007): ");
+        String line = sc.nextLine().trim();
+        try {
+            long n = Long.parseLong(line);
+            boolean isPrime = M6MillerRabin.isPrime(n);
+            System.out.printf("Value: %,d | Prime: %s (Deterministic base witnesses verified)\n", n, isPrime ? "YES (PRIME)" : "NO (COMPOSITE)");
+        } catch (Exception e) {
+            System.out.println("Invalid integer format.");
+        }
     }
 
     private static void runRandomizedQuickSort(DataStore ds) {

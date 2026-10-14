@@ -1,0 +1,12 @@
+# Assignment 1: Fundamental Analysis of Sorting and Search Structures
+Student ID: STU1001 (Aarav Sharma)
+Course: CS201 Data Structures and Algorithms
+
+Abstract:
+In modern computational systems, the efficiency of fundamental data structures directly determines system scalability. The memory hierarchy imposes significant penalties for non-sequential memory access, making cache-aware algorithmic structures essential for high-throughput computing.
+
+Algorithmic Invariants and Correctness:
+A critical component of deterministic algorithm analysis is verifying the loop invariant before, during, and after execution. For randomized quicksort, partitioning preserves the invariant that all elements preceding the pivot index are strictly less than or equal to the pivot value, while succeeding elements are greater than or equal to the pivot. This structural partition guarantees logarithmic recursion depth under uniform random pivot selection with probability approaching unity as problem dimensions scale.
+
+Dynamic Programming Optimal Substructure:
+Dynamic programming guarantees global optimality by memoizing overlapping subproblems. In sequence alignment and string edit distances such as Wagner-Fischer, optimal alignment prefixes satisfy the principle of optimality where sub-solutions are reused across recurrent table updates without redundant combinatorial recalculation.

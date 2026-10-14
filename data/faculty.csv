@@ -1,0 +1,13 @@
+id,name,department,maxWorkload,eligibleCourses
+FAC01,Dr. Rajesh Sundaram,Computer Science,2,CS101;CS201;CS301
+FAC02,Dr. Priya Swaminathan,Computer Science,2,CS201;CS302;CS401
+FAC03,Dr. Amitav Ghosh,Artificial Intelligence,2,AI201;AI301;AI401
+FAC04,Dr. Sunita Murthy,Artificial Intelligence,2,AI301;AI402;CS301
+FAC05,Dr. Venkat Raman,Mathematics,3,MATH101;MATH201;MATH301;MATH401
+FAC06,Dr. Lakshmi Narayan,Mathematics,2,MATH201;MATH202;MATH301
+FAC07,Dr. Harish Chandra,Data Science,2,DS101;DS201;DS301
+FAC08,Dr. Nandini Sengupta,Data Science,2,DS201;DS301;DS401
+FAC09,Dr. K. S. Rao,Electronics,2,EC101;EC201;EC301
+FAC10,Dr. Ananya Banerjee,Cybersecurity,2,CY101;CY201;CS302
+FAC11,Dr. Manoj Tiwari,Software Engineering,2,SE201;SE301;CS101
+FAC12,Dr. Deepa Krishnan,Computer Science,2,CS301;CS401;CY101

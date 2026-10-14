@@ -1,0 +1,12 @@
+# Assignment 1: Review of Sorting Paradigms and Algorithmic Proofs
+Student ID: STU1005 (Vikram Singh)
+Course: CS201 Data Structures and Algorithms
+
+Introduction:
+Sorting algorithms remain foundational to modern software infrastructure, from relational database index engines to real-time query planners.
+
+Theoretical Discussion on Partitioning:
+For randomized quicksort, partitioning preserves the invariant that all elements preceding the pivot index are strictly less than or equal to the pivot value, while succeeding elements are greater than or equal to the pivot. This structural partition guarantees logarithmic recursion depth under uniform random pivot selection with probability approaching unity as problem dimensions scale.
+
+Conclusion on Performance:
+Experimental validation shows that cache-friendly partition sweeps minimize branch mispredictions and L1 data cache misses during execution.

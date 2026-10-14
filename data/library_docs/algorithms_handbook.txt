@@ -1,0 +1,45 @@
+================================================================================
+           EDUTRACK UNIVERSITY LIBRARY - ADVANCED ALGORITHMS COMPENDIUM
+================================================================================
+
+Chapter 1: String Searching and Automata
+The string matching problem consists of locating all occurrences of a pattern P of length m within a text T of length n. 
+The Knuth-Morris-Pratt (KMP) algorithm preprocesses pattern P into a failure function pi that dictates the maximum shift without redundant comparisons, executing in O(n + m) time.
+The Z-Algorithm computes an array Z where Z[i] is the length of the longest substring starting from index i that matches a prefix of the string.
+The Rabin-Karp algorithm uses polynomial rolling hash functions with modular arithmetic to locate patterns in expected linear time.
+The Aho-Corasick automaton generalizes string matching to multi-pattern dictionaries using a Trie augmented with suffix failure links and dictionary output links.
+
+Chapter 2: Suffix Structures and High-Dimensional Indexing
+Suffix Arrays sort all suffixes of a text in lexicographical order. When combined with the Kasai algorithm for Longest Common Prefix (LCP) computation in linear time, Suffix Arrays enable sub-quadratic substring queries, longest repeated substrings, and document similarity analysis.
+The Suffix Automaton is the minimal deterministic directed acyclic word graph (DAWG) that recognizes all substrings of a string in linear state space O(n) and linear construction time.
+
+Chapter 3: Dynamic Programming and Combinatorial Optimization
+Dynamic programming resolves complex optimization problems by decomposing them into overlapping subproblems with optimal substructure.
+Wagner-Fischer computes Levenshtein edit distance through matrix recurrence.
+Damerau-Levenshtein incorporates character transpositions for typing corrections.
+Matrix-Chain Multiplication calculates the optimal parenthesization order for matrix products in O(n^3).
+Bitmask Dynamic Programming solves the NP-hard Traveling Salesperson Problem (TSP) in O(2^n * n^2) time by tracking visited subsets using binary integers.
+Optimal Binary Search Trees structure keys with non-uniform access frequencies to minimize the average search path depth.
+
+Chapter 4: Network Flows and Duality
+A flow network models capacity-constrained transit between a source s and a sink t.
+The Ford-Fulkerson method augments flow along residual paths.
+Edmonds-Karp uses breadth-first search to ensure termination in O(V E^2).
+Dinic's algorithm establishes level graphs and pushes blocking flows in O(V^2 E).
+The Max-Flow Min-Cut Theorem proves that the maximum flow through a network equals the capacity of its minimum cut.
+Konig's Theorem shows that in any bipartite graph, the maximum matching cardinality equals the minimum vertex cover cardinality.
+
+Chapter 5: Computational Intractability and Approximations
+Polynomial-time reductions prove relative hardness among decision problems.
+Stephen Cook and Leonid Levin demonstrated that Boolean Satisfiability (SAT) is NP-complete.
+Canonical reduction chains map 3-SAT to CLIQUE, CLIQUE to INDEPENDENT SET, and INDEPENDENT SET to VERTEX COVER.
+Approximation algorithms provide polynomial-time heuristics with provable performance guarantees.
+A greedy maximal matching yields a 2-approximation for Minimum Vertex Cover.
+
+Chapter 6: Probabilistic Analysis and Parallel Complexity
+Randomized algorithms employ pseudo-random choices to break worst-case symmetry.
+Randomized QuickSort achieves expected O(n log n) running time regardless of input ordering.
+Reservoir Sampling extracts a uniform sample of k elements from an unbounded streaming input in a single pass.
+The Miller-Rabin test checks primality with provable error probability bounded by 4^(-k).
+The Blelloch Parallel Scan computes prefix sums in O(n) work and O(log n) span using an up-sweep reduce phase and a down-sweep distribution phase.
+Brent's Theorem bounds parallel run time on P processors by T_P <= (T1 - T_inf) / P + T_inf.

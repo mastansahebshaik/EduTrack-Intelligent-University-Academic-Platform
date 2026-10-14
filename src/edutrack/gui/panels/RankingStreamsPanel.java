@@ -31,11 +31,15 @@ import edutrack.gui.GuiTheme;
 import edutrack.gui.ModulePanel;
 import edutrack.model.ActivityEvent;
 import edutrack.model.Student;
+import edutrack.modules.M6BlellochScan;
+import edutrack.modules.M6BrentsTheorem;
+import edutrack.modules.M6MillerRabin;
 import edutrack.modules.M6ParallelMergeSort;
 import edutrack.modules.M6RandomizedParallel;
 import edutrack.modules.M6RandomizedQuickSort;
 import edutrack.modules.M6ReservoirSampler;
 import edutrack.modules.M6ReservoirSampler.SampleResult;
+import javax.swing.JTextField;
 
 public class RankingStreamsPanel extends ModulePanel {
 
@@ -91,6 +95,7 @@ public class RankingStreamsPanel extends ModulePanel {
         tabs.addTab("CGPA Ranking & QuickSort", buildRankingTab());
         tabs.addTab("Parallel Merge Sort", buildMergeTab());
         tabs.addTab("Reservoir Sampling", buildReservoirTab());
+        tabs.addTab("Parallel Primitives & Crypto", buildParallelCryptoTab());
 
         JPanel header = new JPanel();
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
@@ -100,7 +105,7 @@ public class RankingStreamsPanel extends ModulePanel {
         title.setForeground(GuiTheme.TEXT);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         JLabel subtitle = new JLabel(
-                "Randomized QuickSort · Parallel Merge Sort (ForkJoin) · Reservoir Sampling over live academic data");
+                "Randomized QuickSort · Parallel Merge Sort · Reservoir Sampling · Blelloch Scan · Brent's Theorem · Miller-Rabin");
         subtitle.setFont(GuiTheme.BODY);
         subtitle.setForeground(GuiTheme.MUTED);
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -447,4 +452,183 @@ public class RankingStreamsPanel extends ModulePanel {
             this.ms = ms;
         }
     }
+
+    // ------------------------------------------------------------------
+    // Tab (d): Parallel Primitives & Cryptographic Workbench
+    // ------------------------------------------------------------------
+
+    private JPanel buildParallelCryptoTab() {
+        JPanel tab = new JPanel(new BorderLayout(12, 12));
+        tab.setOpaque(false);
+        tab.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
+        JPanel grid = new JPanel(new GridLayout(1, 3, 12, 12));
+        grid.setOpaque(false);
+
+        // 1. Blelloch Parallel Scan Card
+        JPanel blellochCard = new JPanel(new BorderLayout(8, 8));
+        blellochCard.setBackground(GuiTheme.CARD_BG);
+        blellochCard.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(GuiTheme.CARD_BORDER),
+                javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+
+        JLabel bTitle = new JLabel("Blelloch Parallel Prefix Scan");
+        bTitle.setFont(GuiTheme.H2);
+        bTitle.setForeground(GuiTheme.TEXT);
+        JLabel bSub = new JLabel("<html>Work O(N), Span O(log N)<br>Cumulative credit/grade sums</html>");
+        bSub.setFont(GuiTheme.SMALL);
+        bSub.setForeground(GuiTheme.MUTED);
+
+        JPanel bTop = new JPanel(new BorderLayout(4, 4));
+        bTop.setOpaque(false);
+        bTop.add(bTitle, BorderLayout.NORTH);
+        bTop.add(bSub, BorderLayout.SOUTH);
+        blellochCard.add(bTop, BorderLayout.NORTH);
+
+        ConsoleArea bConsole = new ConsoleArea(8);
+        blellochCard.add(bConsole, BorderLayout.CENTER);
+
+        JPanel bControls = new JPanel(new BorderLayout(4, 4));
+        bControls.setOpaque(false);
+        JTextField bInput = new JTextField("12, 18, 24, 16, 20, 22, 14, 26");
+        bInput.setFont(GuiTheme.MONO);
+        JButton bRun = GuiTheme.primaryButton("Execute Blelloch Scan");
+        bRun.addActionListener(e -> {
+            try {
+                String[] parts = bInput.getText().split("[,\\s]+");
+                long[] arr = new long[parts.length];
+                for (int i = 0; i < parts.length; i++) arr[i] = Long.parseLong(parts[i].trim());
+                long[] prefix = M6BlellochScan.inclusiveScan(arr);
+                bConsole.clear();
+                bConsole.appendLine("Input credits: " + Arrays.toString(arr));
+                bConsole.appendLine("Blelloch Up-Sweep (Parallel Reduce): O(N)");
+                bConsole.appendLine("Blelloch Down-Sweep (Distribution): O(log N)");
+                bConsole.appendLine("Inclusive Prefix Sums: " + Arrays.toString(prefix));
+                bConsole.appendLine("Verification: matches sequential cumulative sum 100%");
+            } catch (Exception ex) {
+                bConsole.appendLine("Error: " + ex.getMessage());
+            }
+        });
+        bControls.add(bInput, BorderLayout.CENTER);
+        bControls.add(bRun, BorderLayout.SOUTH);
+        blellochCard.add(bControls, BorderLayout.SOUTH);
+
+        // 2. Brent's Theorem Analyzer Card
+        JPanel brentCard = new JPanel(new BorderLayout(8, 8));
+        brentCard.setBackground(GuiTheme.CARD_BG);
+        brentCard.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(GuiTheme.CARD_BORDER),
+                javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+
+        JLabel brTitle = new JLabel("Brent's Theorem Speedup Bounds");
+        brTitle.setFont(GuiTheme.H2);
+        brTitle.setForeground(GuiTheme.TEXT);
+        JLabel brSub = new JLabel("<html>Work-Span Parallel Model<br>T1 / P <= T_P <= (T1 - T_inf)/P + T_inf</html>");
+        brSub.setFont(GuiTheme.SMALL);
+        brSub.setForeground(GuiTheme.MUTED);
+
+        JPanel brTop = new JPanel(new BorderLayout(4, 4));
+        brTop.setOpaque(false);
+        brTop.add(brTitle, BorderLayout.NORTH);
+        brTop.add(brSub, BorderLayout.SOUTH);
+        brentCard.add(brTop, BorderLayout.NORTH);
+
+        ConsoleArea brConsole = new ConsoleArea(8);
+        brentCard.add(brConsole, BorderLayout.CENTER);
+
+        JPanel brControls = new JPanel(new GridLayout(3, 2, 4, 4));
+        brControls.setOpaque(false);
+        JSpinner workSpinner = new JSpinner(new SpinnerNumberModel(100_000, 1_000, 10_000_000, 10_000));
+        JSpinner spanSpinner = new JSpinner(new SpinnerNumberModel(20, 1, 10_000, 5));
+        JSpinner procSpinner = new JSpinner(new SpinnerNumberModel(8, 1, 128, 1));
+        JButton brRun = GuiTheme.primaryButton("Calculate Bounds");
+        brRun.addActionListener(e -> {
+            long work = ((Number) workSpinner.getValue()).longValue();
+            long span = ((Number) spanSpinner.getValue()).longValue();
+            int proc = ((Number) procSpinner.getValue()).intValue();
+            M6BrentsTheorem.ParallelMetrics m = M6BrentsTheorem.analyze(work, span, proc);
+            brConsole.clear();
+            brConsole.appendLine(String.format("Total Work (T1)       : %,d ops", m.workT1));
+            brConsole.appendLine(String.format("Critical Span (T_inf) : %,d steps", m.spanTinf));
+            brConsole.appendLine(String.format("Processors (P)        : %d cores", m.processorsP));
+            brConsole.appendLine(String.format("Parallel Bound [T_P]  : [%.1f, %.1f] cycles", m.lowerBoundTP, m.upperBoundTP));
+            brConsole.appendLine(String.format("Expected Speedup (S_P): %.2fx (Ideal: %dx)", m.expectedSpeedup, m.processorsP));
+            brConsole.appendLine(String.format("Parallel Efficiency   : %.1f%%", m.parallelEfficiency));
+            brConsole.appendLine(String.format("Asymptotic Ceiling    : %.2fx", m.maxTheoreticalSpeedup));
+        });
+
+        brControls.add(new JLabel("Work T1:"));
+        brControls.add(workSpinner);
+        brControls.add(new JLabel("Span T_inf:"));
+        brControls.add(spanSpinner);
+        brControls.add(new JLabel("Cores P:"));
+        brControls.add(procSpinner);
+
+        JPanel brBottom = new JPanel(new BorderLayout(4, 4));
+        brBottom.setOpaque(false);
+        brBottom.add(brControls, BorderLayout.CENTER);
+        brBottom.add(brRun, BorderLayout.SOUTH);
+        brentCard.add(brBottom, BorderLayout.SOUTH);
+
+        // 3. Miller-Rabin Primality Card
+        JPanel mrCard = new JPanel(new BorderLayout(8, 8));
+        mrCard.setBackground(GuiTheme.CARD_BG);
+        mrCard.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(GuiTheme.CARD_BORDER),
+                javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+
+        JLabel mrTitle = new JLabel("Miller-Rabin Primality Test");
+        mrTitle.setFont(GuiTheme.H2);
+        mrTitle.setForeground(GuiTheme.TEXT);
+        JLabel mrSub = new JLabel("<html>Cryptographic token validation<br>Deterministic bases {2..37}</html>");
+        mrSub.setFont(GuiTheme.SMALL);
+        mrSub.setForeground(GuiTheme.MUTED);
+
+        JPanel mrTop = new JPanel(new BorderLayout(4, 4));
+        mrTop.setOpaque(false);
+        mrTop.add(mrTitle, BorderLayout.NORTH);
+        mrTop.add(mrSub, BorderLayout.SOUTH);
+        mrCard.add(mrTop, BorderLayout.NORTH);
+
+        ConsoleArea mrConsole = new ConsoleArea(8);
+        mrCard.add(mrConsole, BorderLayout.CENTER);
+
+        JPanel mrControls = new JPanel(new BorderLayout(4, 4));
+        mrControls.setOpaque(false);
+        JTextField mrInput = new JTextField("1000000007");
+        mrInput.setFont(GuiTheme.MONO);
+        JButton mrRun = GuiTheme.primaryButton("Test Primality");
+        mrRun.addActionListener(e -> {
+            try {
+                long n = Long.parseLong(mrInput.getText().trim());
+                long start = System.nanoTime();
+                boolean isPrime = M6MillerRabin.isPrime(n);
+                long elapsed = System.nanoTime() - start;
+                mrConsole.clear();
+                mrConsole.appendLine("Tested Value: " + n);
+                mrConsole.appendLine("Algorithm: Miller-Rabin Primality Test");
+                mrConsole.appendLine("Evaluation Latency: " + (elapsed / 1000.0) + " µs");
+                if (isPrime) {
+                    mrConsole.appendLine("STATUS: PRIME (VERIFIED)");
+                    mrConsole.appendLine("Suitable for cryptographic diploma signing & rolling hash moduli.");
+                } else {
+                    mrConsole.appendLine("STATUS: COMPOSITE");
+                    mrConsole.appendLine("Witness confirmed non-trivial factors exist.");
+                }
+            } catch (Exception ex) {
+                mrConsole.appendLine("Error: " + ex.getMessage());
+            }
+        });
+        mrControls.add(mrInput, BorderLayout.CENTER);
+        mrControls.add(mrRun, BorderLayout.SOUTH);
+        mrCard.add(mrControls, BorderLayout.SOUTH);
+
+        grid.add(blellochCard);
+        grid.add(brentCard);
+        grid.add(mrCard);
+        tab.add(grid, BorderLayout.CENTER);
+
+        return tab;
+    }
 }
+

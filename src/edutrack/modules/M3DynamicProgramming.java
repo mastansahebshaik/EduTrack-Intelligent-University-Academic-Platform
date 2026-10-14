@@ -37,6 +37,7 @@ public class M3DynamicProgramming {
             System.out.println("3. Matrix-Chain Multiplication (Data Pipeline)");
             System.out.println("4. Bitmask DP Course Combination Explorer");
             System.out.println("5. Optimal BST (Course Access Optimizer)");
+            System.out.println("6. 2D Alignment Matrix (Wagner-Fischer Table & Trace)");
             System.out.println("0. Back to Main Menu");
             System.out.print("Enter your choice : ");
 
@@ -58,6 +59,9 @@ public class M3DynamicProgramming {
                 case 5:
                     runOptimalBST(ds);
                     break;
+                case 6:
+                    run2DMatrixTrace(sc);
+                    break;
                 case 0:
                     System.out.println("Returning to main menu...");
                     break;
@@ -65,6 +69,23 @@ public class M3DynamicProgramming {
                     System.out.println("\nInvalid Choice!");
             }
         } while (choice != 0);
+    }
+
+    private static void run2DMatrixTrace(Scanner sc) {
+        System.out.println("\n--- 2D Dynamic Programming Alignment Matrix ---");
+        System.out.print("Enter source string (default CS102): ");
+        String s = sc.nextLine().trim();
+        if (s.isEmpty()) s = "CS102";
+        System.out.print("Enter target string (default SC102): ");
+        String t = sc.nextLine().trim();
+        if (t.isEmpty()) t = "SC102";
+
+        DpTraceResult res = computeWithTrace(s, t);
+        System.out.println("\n2D Wagner-Fischer Cost Matrix:");
+        System.out.println(res.printMatrix());
+        System.out.println("Levenshtein Edit Distance: " + res.distance);
+        System.out.println("Optimal Reconstructed Alignment Operations:");
+        System.out.println(res.printAlignment());
     }
 
     // ------------------------------------------------------------------
@@ -541,6 +562,111 @@ public class M3DynamicProgramming {
         }
         return d[m][n];
     }
+
+    public static class DpTraceResult {
+        public final int distance;
+        public final int[][] dpTable;
+        public final String source;
+        public final String target;
+        public final List<int[]> backtracePath;
+        public final List<String> operations;
+
+        public DpTraceResult(int distance, int[][] dpTable, String source, String target,
+                             List<int[]> backtracePath, List<String> operations) {
+            this.distance = distance;
+            this.dpTable = dpTable;
+            this.source = source;
+            this.target = target;
+            this.backtracePath = List.copyOf(backtracePath);
+            this.operations = List.copyOf(operations);
+        }
+
+        public String printMatrix() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("%-6s", ""));
+            sb.append(String.format("%-4s", "ε"));
+            for (int j = 0; j < target.length(); j++) {
+                sb.append(String.format("%-4s", target.charAt(j)));
+            }
+            sb.append("\n");
+
+            for (int i = 0; i <= source.length(); i++) {
+                sb.append(String.format("%-6s", i == 0 ? "ε" : String.valueOf(source.charAt(i - 1))));
+                for (int j = 0; j <= target.length(); j++) {
+                    sb.append(String.format("%-4d", dpTable[i][j]));
+                }
+                sb.append("\n");
+            }
+            return sb.toString();
+        }
+
+        public String printAlignment() {
+            StringBuilder sb = new StringBuilder();
+            for (int i = operations.size() - 1; i >= 0; i--) {
+                sb.append(operations.get(i));
+                if (i > 0) sb.append(" -> ");
+            }
+            return sb.toString();
+        }
+    }
+
+    public static DpTraceResult computeWithTrace(String a, String b) {
+        if (a == null || b == null) throw new IllegalArgumentException("strings must not be null");
+        int m = a.length();
+        int n = b.length();
+        int[][] d = new int[m + 1][n + 1];
+        for (int i = 0; i <= m; i++) d[i][0] = i;
+        for (int j = 0; j <= n; j++) d[0][j] = j;
+
+        for (int i = 1; i <= m; i++) {
+            char c1 = a.charAt(i - 1);
+            for (int j = 1; j <= n; j++) {
+                char c2 = b.charAt(j - 1);
+                if (c1 == c2) {
+                    d[i][j] = d[i - 1][j - 1];
+                } else {
+                    int insertCost = d[i][j - 1] + 1;
+                    int deleteCost = d[i - 1][j] + 1;
+                    int replaceCost = d[i - 1][j - 1] + 1;
+                    d[i][j] = Math.min(insertCost, Math.min(deleteCost, replaceCost));
+                }
+            }
+        }
+
+        List<int[]> path = new ArrayList<>();
+        List<String> ops = new ArrayList<>();
+        int currI = m;
+        int currJ = n;
+        path.add(new int[]{currI, currJ});
+
+        while (currI > 0 || currJ > 0) {
+            if (currI > 0 && currJ > 0 && a.charAt(currI - 1) == b.charAt(currJ - 1)) {
+                ops.add("Match ('" + a.charAt(currI - 1) + "')");
+                currI--;
+                currJ--;
+            } else {
+                int del = (currI > 0) ? d[currI - 1][currJ] : Integer.MAX_VALUE;
+                int ins = (currJ > 0) ? d[currI][currJ - 1] : Integer.MAX_VALUE;
+                int sub = (currI > 0 && currJ > 0) ? d[currI - 1][currJ - 1] : Integer.MAX_VALUE;
+
+                if (sub <= del && sub <= ins && currI > 0 && currJ > 0) {
+                    ops.add("Substitute ('" + a.charAt(currI - 1) + "' -> '" + b.charAt(currJ - 1) + "')");
+                    currI--;
+                    currJ--;
+                } else if (ins <= del && currJ > 0) {
+                    ops.add("Insert ('" + b.charAt(currJ - 1) + "')");
+                    currJ--;
+                } else if (currI > 0) {
+                    ops.add("Delete ('" + a.charAt(currI - 1) + "')");
+                    currI--;
+                }
+            }
+            path.add(new int[]{currI, currJ});
+        }
+
+        return new DpTraceResult(d[m][n], d, a, b, path, ops);
+    }
+
 
     public static int damerauOSA(String a, String b) {
         if (a == null || b == null) throw new IllegalArgumentException("strings must not be null");

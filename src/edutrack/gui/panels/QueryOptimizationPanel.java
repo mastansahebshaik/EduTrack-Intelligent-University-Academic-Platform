@@ -3,6 +3,7 @@ package edutrack.gui.panels;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.FontMetrics;
@@ -28,6 +29,8 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 import edutrack.data.DataStore;
@@ -88,6 +91,7 @@ public class QueryOptimizationPanel extends ModulePanel {
         tabs.addTab("Matrix-Chain", buildMcmTab());
         tabs.addTab("Bitmask Explorer", buildBitmaskTab());
         tabs.addTab("Optimal BST", buildObstTab());
+        tabs.addTab("2D Alignment Matrix", buildDpMatrixTab());
         add(tabs, BorderLayout.CENTER);
     }
 
@@ -708,4 +712,154 @@ public class QueryOptimizationPanel extends ModulePanel {
             this.preorder = preorder;
         }
     }
+
+    // ------------------------------------------------------------------
+    // Tab (e): 2D Alignment Matrix Visualizer (Wagner-Fischer Table & Trace)
+    // ------------------------------------------------------------------
+
+    private JTextField dpSourceField;
+    private JTextField dpTargetField;
+    private JButton dpTraceButton;
+    private DefaultTableModel dpMatrixModel;
+    private JTable dpMatrixTable;
+    private ConsoleArea dpOperationsArea;
+    private M3DynamicProgramming.DpTraceResult currentDpTrace;
+
+    private JPanel buildDpMatrixTab() {
+        JPanel tab = tabBase();
+
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        controls.setOpaque(false);
+        JLabel sLabel = new JLabel("Source Query:");
+        sLabel.setFont(GuiTheme.BODY);
+        dpSourceField = new JTextField("CS102", 10);
+        dpSourceField.setFont(GuiTheme.BODY);
+        JLabel tLabel = new JLabel("Target Query:");
+        tLabel.setFont(GuiTheme.BODY);
+        dpTargetField = new JTextField("SC102", 10);
+        dpTargetField.setFont(GuiTheme.BODY);
+
+        dpTraceButton = GuiTheme.primaryButton("Trace 2D Matrix & Alignment");
+        dpTraceButton.addActionListener(e -> {
+            String s = dpSourceField.getText().trim();
+            String t = dpTargetField.getText().trim();
+            if (!s.isEmpty() && !t.isEmpty()) {
+                renderDpMatrix(s, t);
+            }
+        });
+
+        controls.add(sLabel);
+        controls.add(dpSourceField);
+        controls.add(tLabel);
+        controls.add(dpTargetField);
+        controls.add(dpTraceButton);
+        tab.add(controls, BorderLayout.NORTH);
+
+        JPanel centerPanel = new JPanel(new BorderLayout(8, 8));
+        centerPanel.setOpaque(false);
+
+        JLabel formula = new JLabel("<html><span style='color:#2563EB; font-weight:bold;'>Wagner-Fischer Recurrence:</span> " +
+                "<code>D[i, j] = min( D[i-1, j] + 1 (Del), D[i, j-1] + 1 (Ins), D[i-1, j-1] + cost (Sub/Match) )</code>" +
+                " &nbsp;|&nbsp; Optimal alignment backtrace cells highlighted in gold.</html>");
+        formula.setFont(GuiTheme.SMALL);
+        formula.setBorder(BorderFactory.createEmptyBorder(2, 4, 6, 4));
+        centerPanel.add(formula, BorderLayout.NORTH);
+
+        dpMatrixModel = new DefaultTableModel();
+        dpMatrixTable = new JTable(dpMatrixModel);
+        GuiTheme.styleTable(dpMatrixTable);
+        dpMatrixTable.setFont(GuiTheme.MONO);
+        dpMatrixTable.setRowHeight(26);
+
+        dpMatrixTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, col);
+                setHorizontalAlignment(SwingConstants.CENTER);
+                if (currentDpTrace != null && col > 0) {
+                    int i = row;
+                    int j = col - 1;
+                    boolean onPath = false;
+                    for (int[] p : currentDpTrace.backtracePath) {
+                        if (p[0] == i && p[1] == j) {
+                            onPath = true;
+                            break;
+                        }
+                    }
+                    if (onPath) {
+                        c.setBackground(new Color(254, 240, 138));
+                        c.setForeground(new Color(113, 63, 18));
+                        setFont(getFont().deriveFont(java.awt.Font.BOLD));
+                    } else {
+                        c.setBackground(Color.WHITE);
+                        c.setForeground(GuiTheme.TEXT);
+                    }
+                } else if (col == 0) {
+                    c.setBackground(new Color(241, 245, 249));
+                    c.setForeground(GuiTheme.TEXT);
+                    setFont(getFont().deriveFont(java.awt.Font.BOLD));
+                }
+                return c;
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(dpMatrixTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(GuiTheme.CARD_BORDER),
+                "2D Dynamic Programming Cost Matrix (Wagner-Fischer Table)",
+                javax.swing.border.TitledBorder.LEFT,
+                javax.swing.border.TitledBorder.TOP,
+                GuiTheme.H2,
+                GuiTheme.TEXT));
+        centerPanel.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new BorderLayout(4, 4));
+        bottomPanel.setOpaque(false);
+        bottomPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(GuiTheme.CARD_BORDER),
+                "Optimal Edit Sequence & Backtrace Alignment Operations",
+                javax.swing.border.TitledBorder.LEFT,
+                javax.swing.border.TitledBorder.TOP,
+                GuiTheme.H2,
+                GuiTheme.TEXT));
+
+        dpOperationsArea = new ConsoleArea(4);
+        bottomPanel.add(dpOperationsArea, BorderLayout.CENTER);
+        centerPanel.add(bottomPanel, BorderLayout.SOUTH);
+
+        tab.add(centerPanel, BorderLayout.CENTER);
+
+        renderDpMatrix("CS102", "SC102");
+        return tab;
+    }
+
+    private void renderDpMatrix(String source, String target) {
+        currentDpTrace = M3DynamicProgramming.computeWithTrace(source, target);
+        int m = source.length();
+        int n = target.length();
+
+        String[] colNames = new String[n + 2];
+        colNames[0] = "src\\tgt";
+        colNames[1] = "ε (0)";
+        for (int j = 0; j < n; j++) {
+            colNames[j + 2] = "'" + target.charAt(j) + "' (" + (j + 1) + ")";
+        }
+
+        Object[][] data = new Object[m + 1][n + 2];
+        for (int i = 0; i <= m; i++) {
+            data[i][0] = (i == 0 ? "ε (0)" : "'" + source.charAt(i - 1) + "' (" + i + ")");
+            for (int j = 0; j <= n; j++) {
+                data[i][j + 1] = currentDpTrace.dpTable[i][j];
+            }
+        }
+
+        dpMatrixModel.setDataVector(data, colNames);
+
+        dpOperationsArea.clear();
+        dpOperationsArea.appendLine(String.format("Levenshtein Edit Distance: %d between \"%s\" and \"%s\"",
+                currentDpTrace.distance, source, target));
+        dpOperationsArea.appendLine("Step-by-Step Alignment Operations (Backtracked from [m,n] to [0,0]):");
+        dpOperationsArea.appendLine(currentDpTrace.printAlignment());
+    }
 }
+

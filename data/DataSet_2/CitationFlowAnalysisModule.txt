@@ -1,0 +1,1923 @@
+Citation Flow Analysis
+
+FlowEdge.java
+
+package citationflow;
+
+public class FlowEdge {
+
+    int from;
+    int to;
+
+    int capacity;
+    int flow;
+
+    FlowEdge reverse;
+
+    public FlowEdge(int from, int to, int capacity) {
+        this.from = from;
+        this.to = to;
+        this.capacity = capacity;
+        this.flow = 0;
+    }
+
+    public int residualCapacity() {
+        return capacity - flow;
+    }
+
+    public void addFlow(int amount) {
+        flow += amount;
+        reverse.flow -= amount;
+    }
+}
+
+
+
+CitationGraph.java
+
+package citationflow;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class CitationGraph {
+
+    private int[] paperIds;
+    private int paperCount;
+
+    private int[] sourceIds;
+    private int[] targetIds;
+
+    private int edgeCount;
+
+    public CitationGraph() {
+        paperIds = new int[30000];
+
+        sourceIds = new int[10000];
+        targetIds = new int[10000];
+
+        paperCount = 0;
+        edgeCount = 0;
+    }
+
+    public void load(String fileName) throws IOException {
+
+        BufferedReader br =
+                new BufferedReader(new FileReader(fileName));
+
+        String line;
+
+        while ((line = br.readLine()) != null) {
+
+            line = line.trim();
+
+            if (line.length() == 0) {
+                continue;
+            }
+
+            String[] parts = line.split("\\s+");
+
+            if (parts.length < 2) {
+                continue;
+            }
+
+            int source = Integer.parseInt(parts[0]);
+            int target = Integer.parseInt(parts[1]);
+
+            addPaper(source);
+            addPaper(target);
+
+            sourceIds[edgeCount] = source;
+            targetIds[edgeCount] = target;
+
+            edgeCount++;
+        }
+
+        br.close();
+
+        System.out.println();
+        System.out.println("Citation dataset loaded successfully.");
+        System.out.println("Number of papers    : " + paperCount);
+        System.out.println("Number of citations : " + edgeCount);
+    }
+
+    private void addPaper(int id) {
+
+        if (getInternalIndex(id) != -1) {
+            return;
+        }
+
+        paperIds[paperCount] = id;
+        paperCount++;
+    }
+
+    public int getInternalIndex(int paperId) {
+
+        for (int i = 0; i < paperCount; i++) {
+
+            if (paperIds[i] == paperId) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public int getPaperId(int index) {
+
+        if (index < 0 || index >= paperCount) {
+            return -1;
+        }
+
+        return paperIds[index];
+    }
+
+    public int getPaperCount() {
+        return paperCount;
+    }
+
+    public int getEdgeCount() {
+        return edgeCount;
+    }
+
+    public int getSourceId(int edge) {
+        return sourceIds[edge];
+    }
+
+    public int getTargetId(int edge) {
+        return targetIds[edge];
+    }
+
+    public void displayInformation() {
+
+        System.out.println();
+        System.out.println("==============================================");
+        System.out.println("          CITATION GRAPH INFORMATION");
+        System.out.println("==============================================");
+
+        System.out.println("Dataset              : Cora");
+        System.out.println("Number of papers     : " + paperCount);
+        System.out.println("Number of citations  : " + edgeCount);
+        System.out.println("Graph type           : Directed");
+        System.out.println("Edge capacity        : 1");
+
+        System.out.println("==============================================");
+    }
+
+    public void displayEdges(int limit) {
+
+        System.out.println();
+        System.out.println("==============================================");
+        System.out.println("              CITATION EDGES");
+        System.out.println("==============================================");
+
+        int count = edgeCount;
+
+        if (count > limit) {
+            count = limit;
+        }
+
+        for (int i = 0; i < count; i++) {
+
+            System.out.println(
+                    sourceIds[i] + " -> " + targetIds[i]);
+        }
+
+        if (edgeCount > limit) {
+
+            System.out.println(
+                    "... " + (edgeCount - limit)
+                    + " more citations");
+        }
+
+        System.out.println("==============================================");
+    }
+
+    public void displayPaperIds() {
+
+        System.out.println();
+        System.out.println("Available Paper IDs:");
+
+        for (int i = 0; i < paperCount; i++) {
+
+            System.out.print(paperIds[i] + " ");
+
+            if ((i + 1) % 15 == 0) {
+                System.out.println();
+            }
+        }
+
+        System.out.println();
+    }
+
+    public int[] getPaperIds() {
+        return paperIds;
+    }
+
+    public int[] getSourceIds() {
+        return sourceIds;
+    }
+
+    public int[] getTargetIds() {
+        return targetIds;
+    }
+}
+
+
+FlowResult.java
+
+package citationflow;
+
+public class FlowResult {
+
+    public String algorithm;
+
+    public int maxFlow;
+
+    public int augmentationCount;
+
+    public long executionTime;
+
+    public FlowResult(
+            String algorithm,
+            int maxFlow,
+            int augmentationCount,
+            long executionTime) {
+
+        this.algorithm = algorithm;
+        this.maxFlow = maxFlow;
+        this.augmentationCount = augmentationCount;
+        this.executionTime = executionTime;
+    }
+}
+
+
+FordFulkerson.java
+
+package citationflow;
+
+public class FordFulkerson {
+
+    private CitationGraph graph;
+
+    private int[][] capacity;
+    private int[][] residual;
+
+    private int vertices;
+
+    private int augmentationCount;
+
+    public FordFulkerson(CitationGraph graph) {
+
+        this.graph = graph;
+
+        vertices = graph.getPaperCount();
+
+        capacity =
+                new int[vertices][vertices];
+
+        residual =
+                new int[vertices][vertices];
+
+        buildNetwork();
+    }
+
+    private void buildNetwork() {
+
+        for (int i = 0;
+             i < graph.getEdgeCount();
+             i++) {
+
+            int source =
+                    graph.getInternalIndex(
+                            graph.getSourceId(i));
+
+            int target =
+                    graph.getInternalIndex(
+                            graph.getTargetId(i));
+
+            capacity[source][target] += 1;
+            residual[source][target] += 1;
+        }
+    }
+
+    private boolean dfs(
+            int current,
+            int sink,
+            boolean[] visited,
+            int[] parent) {
+
+        visited[current] = true;
+
+        if (current == sink) {
+            return true;
+        }
+
+        for (int next = 0;
+             next < vertices;
+             next++) {
+
+            if (!visited[next]
+                    && residual[current][next] > 0) {
+
+                parent[next] = current;
+
+                if (dfs(
+                        next,
+                        sink,
+                        visited,
+                        parent)) {
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public FlowResult calculate(
+            int source,
+            int sink,
+            boolean showPaths) {
+
+        int maxFlow = 0;
+
+        augmentationCount = 0;
+
+        int[] parent =
+                new int[vertices];
+
+        long start =
+                System.nanoTime();
+
+        while (true) {
+
+            boolean[] visited =
+                    new boolean[vertices];
+
+            for (int i = 0;
+                 i < vertices;
+                 i++) {
+
+                parent[i] = -1;
+            }
+
+            boolean found =
+                    dfs(
+                            source,
+                            sink,
+                            visited,
+                            parent);
+
+            if (!found) {
+                break;
+            }
+
+            int pathFlow =
+                    Integer.MAX_VALUE;
+
+            int current = sink;
+
+            while (current != source) {
+
+                int previous =
+                        parent[current];
+
+                if (residual[previous][current]
+                        < pathFlow) {
+
+                    pathFlow =
+                            residual[previous][current];
+                }
+
+                current = previous;
+            }
+
+            augmentationCount++;
+
+            if (showPaths) {
+
+                System.out.print(
+                        "\nAugmenting Path "
+                        + augmentationCount
+                        + ": ");
+
+                printPath(
+                        source,
+                        sink,
+                        parent);
+
+                System.out.println(
+                        "Bottleneck Capacity : "
+                        + pathFlow);
+            }
+
+            current = sink;
+
+            while (current != source) {
+
+                int previous =
+                        parent[current];
+
+                residual[previous][current]
+                        -= pathFlow;
+
+                residual[current][previous]
+                        += pathFlow;
+
+                current = previous;
+            }
+
+            maxFlow += pathFlow;
+
+            if (showPaths) {
+
+                System.out.println(
+                        "Current Maximum Flow : "
+                        + maxFlow);
+            }
+        }
+
+        long end =
+                System.nanoTime();
+
+        return new FlowResult(
+                "Ford-Fulkerson",
+                maxFlow,
+                augmentationCount,
+                end - start);
+    }
+
+    private void printPath(
+            int source,
+            int sink,
+            int[] parent) {
+
+        int[] path =
+                new int[vertices];
+
+        int count = 0;
+
+        int current = sink;
+
+        while (current != -1) {
+
+            path[count++] = current;
+
+            if (current == source) {
+                break;
+            }
+
+            current = parent[current];
+        }
+
+        for (int i = count - 1;
+             i >= 0;
+             i--) {
+
+            System.out.print(
+                    graph.getPaperId(path[i]));
+
+            if (i > 0) {
+                System.out.print(" -> ");
+            }
+        }
+
+        System.out.println();
+    }
+
+    public int[][] getResidual() {
+        return residual;
+    }
+
+    public int[][] getCapacity() {
+        return capacity;
+    }
+
+    public int getAugmentationCount() {
+        return augmentationCount;
+    }
+}
+
+
+EdmondsKarp.java
+
+package citationflow;
+
+public class EdmondsKarp {
+
+    private CitationGraph graph;
+
+    private int[][] capacity;
+    private int[][] residual;
+
+    private int vertices;
+
+    private int augmentationCount;
+
+    public EdmondsKarp(CitationGraph graph) {
+
+        this.graph = graph;
+
+        vertices = graph.getPaperCount();
+
+        capacity =
+                new int[vertices][vertices];
+
+        residual =
+                new int[vertices][vertices];
+
+        buildNetwork();
+    }
+
+    private void buildNetwork() {
+
+        for (int i = 0;
+             i < graph.getEdgeCount();
+             i++) {
+
+            int source =
+                    graph.getInternalIndex(
+                            graph.getSourceId(i));
+
+            int target =
+                    graph.getInternalIndex(
+                            graph.getTargetId(i));
+
+            capacity[source][target] += 1;
+            residual[source][target] += 1;
+        }
+    }
+
+    private boolean bfs(
+            int source,
+            int sink,
+            int[] parent) {
+
+        boolean[] visited =
+                new boolean[vertices];
+
+        int[] queue =
+                new int[vertices];
+
+        int front = 0;
+        int rear = 0;
+
+        queue[rear++] = source;
+
+        visited[source] = true;
+
+        while (front < rear) {
+
+            int current =
+                    queue[front++];
+
+            for (int next = 0;
+                 next < vertices;
+                 next++) {
+
+                if (!visited[next]
+                        && residual[current][next] > 0) {
+
+                    parent[next] = current;
+
+                    visited[next] = true;
+
+                    queue[rear++] = next;
+
+                    if (next == sink) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public FlowResult calculate(
+            int source,
+            int sink,
+            boolean showPaths) {
+
+        int maxFlow = 0;
+
+        augmentationCount = 0;
+
+        int[] parent =
+                new int[vertices];
+
+        long start =
+                System.nanoTime();
+
+        while (true) {
+
+            for (int i = 0;
+                 i < vertices;
+                 i++) {
+
+                parent[i] = -1;
+            }
+
+            boolean found =
+                    bfs(
+                            source,
+                            sink,
+                            parent);
+
+            if (!found) {
+                break;
+            }
+
+            int pathFlow =
+                    Integer.MAX_VALUE;
+
+            int current = sink;
+
+            while (current != source) {
+
+                int previous =
+                        parent[current];
+
+                if (residual[previous][current]
+                        < pathFlow) {
+
+                    pathFlow =
+                            residual[previous][current];
+                }
+
+                current = previous;
+            }
+
+            augmentationCount++;
+
+            if (showPaths) {
+
+                System.out.print(
+                        "\nBFS Augmenting Path "
+                        + augmentationCount
+                        + ": ");
+
+                printPath(
+                        source,
+                        sink,
+                        parent);
+
+                System.out.println(
+                        "Bottleneck Capacity : "
+                        + pathFlow);
+            }
+
+            current = sink;
+
+            while (current != source) {
+
+                int previous =
+                        parent[current];
+
+                residual[previous][current]
+                        -= pathFlow;
+
+                residual[current][previous]
+                        += pathFlow;
+
+                current = previous;
+            }
+
+            maxFlow += pathFlow;
+
+            if (showPaths) {
+
+                System.out.println(
+                        "Current Maximum Flow : "
+                        + maxFlow);
+            }
+        }
+
+        long end =
+                System.nanoTime();
+
+        return new FlowResult(
+                "Edmonds-Karp",
+                maxFlow,
+                augmentationCount,
+                end - start);
+    }
+
+    private void printPath(
+            int source,
+            int sink,
+            int[] parent) {
+
+        int[] path =
+                new int[vertices];
+
+        int count = 0;
+
+        int current = sink;
+
+        while (current != -1) {
+
+            path[count++] = current;
+
+            if (current == source) {
+                break;
+            }
+
+            current = parent[current];
+        }
+
+        for (int i = count - 1;
+             i >= 0;
+             i--) {
+
+            System.out.print(
+                    graph.getPaperId(path[i]));
+
+            if (i > 0) {
+                System.out.print(" -> ");
+            }
+        }
+
+        System.out.println();
+    }
+
+    public int[][] getResidual() {
+        return residual;
+    }
+
+    public int[][] getCapacity() {
+        return capacity;
+    }
+
+    public int getAugmentationCount() {
+        return augmentationCount;
+    }
+}
+
+
+Dinic.java
+
+package citationflow;
+
+public class Dinic {
+
+    private CitationGraph graph;
+
+    private int[][] capacity;
+    private int[][] residual;
+
+    private int vertices;
+
+    private int[] level;
+    private int[] nextEdge;
+
+    public Dinic(CitationGraph graph) {
+
+        this.graph = graph;
+
+        vertices =
+                graph.getPaperCount();
+
+        capacity =
+                new int[vertices][vertices];
+
+        residual =
+                new int[vertices][vertices];
+
+        level =
+                new int[vertices];
+
+        nextEdge =
+                new int[vertices];
+
+        buildNetwork();
+    }
+
+    private void buildNetwork() {
+
+        for (int i = 0;
+             i < graph.getEdgeCount();
+             i++) {
+
+            int source =
+                    graph.getInternalIndex(
+                            graph.getSourceId(i));
+
+            int target =
+                    graph.getInternalIndex(
+                            graph.getTargetId(i));
+
+            capacity[source][target] += 1;
+            residual[source][target] += 1;
+        }
+    }
+
+    private boolean buildLevelGraph(
+            int source,
+            int sink) {
+
+        for (int i = 0;
+             i < vertices;
+             i++) {
+
+            level[i] = -1;
+        }
+
+        int[] queue =
+                new int[vertices];
+
+        int front = 0;
+        int rear = 0;
+
+        queue[rear++] = source;
+
+        level[source] = 0;
+
+        while (front < rear) {
+
+            int current =
+                    queue[front++];
+
+            for (int next = 0;
+                 next < vertices;
+                 next++) {
+
+                if (level[next] == -1
+                        && residual[current][next] > 0) {
+
+                    level[next] =
+                            level[current] + 1;
+
+                    queue[rear++] = next;
+                }
+            }
+        }
+
+        return level[sink] != -1;
+    }
+
+    private int sendFlow(
+            int current,
+            int sink,
+            int flow) {
+
+        if (current == sink) {
+            return flow;
+        }
+
+        for (int next = nextEdge[current];
+             next < vertices;
+             next++) {
+
+            nextEdge[current] = next;
+
+            if (level[next]
+                    == level[current] + 1
+                    && residual[current][next] > 0) {
+
+                int available =
+                        Math.min(
+                                flow,
+                                residual[current][next]);
+
+                int pushed =
+                        sendFlow(
+                                next,
+                                sink,
+                                available);
+
+                if (pushed > 0) {
+
+                    residual[current][next]
+                            -= pushed;
+
+                    residual[next][current]
+                            += pushed;
+
+                    return pushed;
+                }
+            }
+
+            nextEdge[current]++;
+        }
+
+        return 0;
+    }
+
+    public FlowResult calculate(
+            int source,
+            int sink,
+            boolean showLevels) {
+
+        int maxFlow = 0;
+
+        long start =
+                System.nanoTime();
+
+        int phase = 0;
+
+        while (buildLevelGraph(
+                source,
+                sink)) {
+
+            phase++;
+
+            if (showLevels) {
+
+                System.out.println();
+                System.out.println(
+                        "Level Graph " + phase);
+
+                for (int i = 0;
+                     i < vertices;
+                     i++) {
+
+                    if (level[i] != -1) {
+
+                        System.out.println(
+                                graph.getPaperId(i)
+                                + " : Level "
+                                + level[i]);
+                    }
+                }
+            }
+
+            for (int i = 0;
+                 i < vertices;
+                 i++) {
+
+                nextEdge[i] = 0;
+            }
+
+            while (true) {
+
+                int pushed =
+                        sendFlow(
+                                source,
+                                sink,
+                                Integer.MAX_VALUE);
+
+                if (pushed == 0) {
+                    break;
+                }
+
+                maxFlow += pushed;
+
+                if (showLevels) {
+
+                    System.out.println(
+                            "Blocking flow added : "
+                            + pushed);
+
+                    System.out.println(
+                            "Current Maximum Flow : "
+                            + maxFlow);
+                }
+            }
+        }
+
+        long end =
+                System.nanoTime();
+
+        return new FlowResult(
+                "Dinic",
+                maxFlow,
+                phase,
+                end - start);
+    }
+
+    public int[][] getResidual() {
+        return residual;
+    }
+
+    public int[][] getCapacity() {
+        return capacity;
+    }
+}
+
+
+CitationFlowAnalysis.java
+
+package citationflow;
+
+import java.io.IOException;
+import java.util.Scanner;
+
+public class CitationFlowAnalysis {
+
+    private static Scanner scanner =
+            new Scanner(System.in);
+
+    private static CitationGraph graph =
+            new CitationGraph();
+
+    private static int sourcePaper = -1;
+    private static int targetPaper = -1;
+
+    private static boolean datasetLoaded = false;
+
+    private static FlowResult lastFordFulkerson;
+    private static FlowResult lastEdmondsKarp;
+    private static FlowResult lastDinic;
+
+    public static void main(String[] args) {
+
+        while (true) {
+
+            displayMenu();
+
+            System.out.print(
+                    "Enter your choice: ");
+
+            int choice =
+                    scanner.nextInt();
+
+            switch (choice) {
+
+                case 1:
+                    loadDataset();
+                    break;
+
+                case 2:
+                    displayGraphInformation();
+                    break;
+
+                case 3:
+                    selectSourceTarget();
+                    break;
+
+                case 4:
+                    runFordFulkerson();
+                    break;
+
+                case 5:
+                    runEdmondsKarp();
+                    break;
+
+                case 6:
+                    runDinic();
+                    break;
+
+                case 7:
+                    displayAugmentingPaths();
+                    break;
+
+                case 8:
+                    displayResidualGraph();
+                    break;
+
+                case 9:
+                    minimumCutAnalysis();
+                    break;
+
+                case 10:
+                    compareAlgorithms();
+                    break;
+
+                case 11:
+                    displaySummary();
+                    break;
+
+                case 12:
+                    System.out.println(
+                            "Returning to TextHack...");
+
+                    scanner.close();
+                    return;
+
+                default:
+                    System.out.println(
+                            "Invalid choice.");
+            }
+        }
+    }
+
+    private static void displayMenu() {
+
+        System.out.println();
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "              TEXT HACK");
+
+        System.out.println(
+                "       CITATION FLOW ANALYSIS");
+
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "Dataset : Cora Citation Network");
+
+        System.out.println();
+
+        System.out.println(
+                "1. Load Citation Dataset");
+
+        System.out.println(
+                "2. Display Citation Graph Information");
+
+        System.out.println(
+                "3. Select Source and Target Papers");
+
+        System.out.println();
+
+        System.out.println(
+                "---------------- FLOW ALGORITHMS ----------------");
+
+        System.out.println(
+                "4. Ford-Fulkerson Algorithm");
+
+        System.out.println(
+                "5. Edmonds-Karp Algorithm");
+
+        System.out.println(
+                "6. Dinic's Algorithm");
+
+        System.out.println();
+
+        System.out.println(
+                "---------------- FLOW ANALYSIS ----------------");
+
+        System.out.println(
+                "7. Display Augmenting Paths");
+
+        System.out.println(
+                "8. Display Residual Graph");
+
+        System.out.println(
+                "9. Minimum Cut Analysis");
+
+        System.out.println(
+                "10. Citation Flow Comparison");
+
+        System.out.println(
+                "11. Citation Flow Summary");
+
+        System.out.println(
+                "12. Back");
+
+        System.out.println(
+                "====================================================");
+    }
+
+    private static void loadDataset() {
+
+        try {
+
+            System.out.println();
+            System.out.println(
+                    "Loading Cora citation dataset...");
+
+            graph.load(
+                    "DataSets/cora.txt");
+
+            datasetLoaded = true;
+
+        } catch (IOException e) {
+
+            System.out.println(
+                    "Error loading dataset.");
+
+            System.out.println(
+                    e.getMessage());
+        }
+    }
+
+    private static void displayGraphInformation() {
+
+        if (!checkDataset()) {
+            return;
+        }
+
+        graph.displayInformation();
+
+        System.out.println();
+        System.out.println(
+                "Sample Citation Edges:");
+
+        graph.displayEdges(20);
+    }
+
+    private static void selectSourceTarget() {
+
+        if (!checkDataset()) {
+            return;
+        }
+
+        graph.displayPaperIds();
+
+        System.out.print(
+                "\nEnter Source Paper ID: ");
+
+        sourcePaper =
+                scanner.nextInt();
+
+        System.out.print(
+                "Enter Target Paper ID: ");
+
+        targetPaper =
+                scanner.nextInt();
+
+        if (graph.getInternalIndex(sourcePaper)
+                == -1
+                || graph.getInternalIndex(targetPaper)
+                == -1) {
+
+            System.out.println(
+                    "Invalid paper ID.");
+
+            sourcePaper = -1;
+            targetPaper = -1;
+
+            return;
+        }
+
+        if (sourcePaper == targetPaper) {
+
+            System.out.println(
+                    "Source and target must be different.");
+
+            sourcePaper = -1;
+            targetPaper = -1;
+
+            return;
+        }
+
+        System.out.println();
+        System.out.println(
+                "Source Paper : " + sourcePaper);
+
+        System.out.println(
+                "Target Paper : " + targetPaper);
+    }
+
+    private static boolean checkDataset() {
+
+        if (!datasetLoaded) {
+
+            System.out.println(
+                    "Please load the citation dataset first.");
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private static boolean checkSourceTarget() {
+
+        if (!checkDataset()) {
+            return false;
+        }
+
+        if (sourcePaper == -1
+                || targetPaper == -1) {
+
+            System.out.println(
+                    "Please select source and target papers first.");
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private static void runFordFulkerson() {
+
+        if (!checkSourceTarget()) {
+            return;
+        }
+
+        int source =
+                graph.getInternalIndex(
+                        sourcePaper);
+
+        int target =
+                graph.getInternalIndex(
+                        targetPaper);
+
+        System.out.println();
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "             FORD-FULKERSON ALGORITHM");
+
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "Source : " + sourcePaper);
+
+        System.out.println(
+                "Target : " + targetPaper);
+
+        FordFulkerson algorithm =
+                new FordFulkerson(graph);
+
+        lastFordFulkerson =
+                algorithm.calculate(
+                        source,
+                        target,
+                        true);
+
+        System.out.println();
+        System.out.println(
+                "----------------------------------------------------");
+
+        System.out.println(
+                "Maximum Citation Flow : "
+                + lastFordFulkerson.maxFlow);
+
+        System.out.println(
+                "Augmentations         : "
+                + lastFordFulkerson.augmentationCount);
+
+        System.out.println(
+                "----------------------------------------------------");
+    }
+
+    private static void runEdmondsKarp() {
+
+        if (!checkSourceTarget()) {
+            return;
+        }
+
+        int source =
+                graph.getInternalIndex(
+                        sourcePaper);
+
+        int target =
+                graph.getInternalIndex(
+                        targetPaper);
+
+        System.out.println();
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "              EDMONDS-KARP ALGORITHM");
+
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "Source : " + sourcePaper);
+
+        System.out.println(
+                "Target : " + targetPaper);
+
+        EdmondsKarp algorithm =
+                new EdmondsKarp(graph);
+
+        lastEdmondsKarp =
+                algorithm.calculate(
+                        source,
+                        target,
+                        true);
+
+        System.out.println();
+        System.out.println(
+                "----------------------------------------------------");
+
+        System.out.println(
+                "Maximum Citation Flow : "
+                + lastEdmondsKarp.maxFlow);
+
+        System.out.println(
+                "BFS Augmentations     : "
+                + lastEdmondsKarp.augmentationCount);
+
+        System.out.println(
+                "----------------------------------------------------");
+    }
+
+    private static void runDinic() {
+
+        if (!checkSourceTarget()) {
+            return;
+        }
+
+        int source =
+                graph.getInternalIndex(
+                        sourcePaper);
+
+        int target =
+                graph.getInternalIndex(
+                        targetPaper);
+
+        System.out.println();
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "                 DINIC'S ALGORITHM");
+
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "Source : " + sourcePaper);
+
+        System.out.println(
+                "Target : " + targetPaper);
+
+        Dinic algorithm =
+                new Dinic(graph);
+
+        lastDinic =
+                algorithm.calculate(
+                        source,
+                        target,
+                        true);
+
+        System.out.println();
+        System.out.println(
+                "----------------------------------------------------");
+
+        System.out.println(
+                "Maximum Citation Flow : "
+                + lastDinic.maxFlow);
+
+        System.out.println(
+                "Level Graph Phases    : "
+                + lastDinic.augmentationCount);
+
+        System.out.println(
+                "----------------------------------------------------");
+    }
+
+    private static void displayAugmentingPaths() {
+
+        if (!checkSourceTarget()) {
+            return;
+        }
+
+        System.out.println();
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "             AUGMENTING PATH ANALYSIS");
+
+        System.out.println(
+                "====================================================");
+
+        int source =
+                graph.getInternalIndex(
+                        sourcePaper);
+
+        int target =
+                graph.getInternalIndex(
+                        targetPaper);
+
+        System.out.println(
+                "\nFord-Fulkerson Paths:");
+
+        FordFulkerson ff =
+                new FordFulkerson(graph);
+
+        FlowResult result =
+                ff.calculate(
+                        source,
+                        target,
+                        true);
+
+        System.out.println(
+                "\nTotal Flow = "
+                + result.maxFlow);
+
+        System.out.println(
+                "====================================================");
+    }
+
+    private static void displayResidualGraph() {
+
+        if (!checkSourceTarget()) {
+            return;
+        }
+
+        int source =
+                graph.getInternalIndex(
+                        sourcePaper);
+
+        int target =
+                graph.getInternalIndex(
+                        targetPaper);
+
+        FordFulkerson ff =
+                new FordFulkerson(graph);
+
+        FlowResult result =
+                ff.calculate(
+                        source,
+                        target,
+                        false);
+
+        int[][] residual =
+                ff.getResidual();
+
+        System.out.println();
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "                RESIDUAL GRAPH");
+
+        System.out.println(
+                "====================================================");
+
+        for (int i = 0;
+             i < graph.getPaperCount();
+             i++) {
+
+            for (int j = 0;
+                 j < graph.getPaperCount();
+                 j++) {
+
+                if (residual[i][j] > 0) {
+
+                    System.out.println(
+                            graph.getPaperId(i)
+                            + " -> "
+                            + graph.getPaperId(j)
+                            + " | Residual Capacity = "
+                            + residual[i][j]);
+                }
+            }
+        }
+
+        System.out.println();
+        System.out.println(
+                "Maximum Flow = "
+                + result.maxFlow);
+
+        System.out.println(
+                "====================================================");
+    }
+
+    private static void minimumCutAnalysis() {
+
+        if (!checkSourceTarget()) {
+            return;
+        }
+
+        int source =
+                graph.getInternalIndex(
+                        sourcePaper);
+
+        int target =
+                graph.getInternalIndex(
+                        targetPaper);
+
+        FordFulkerson ff =
+                new FordFulkerson(graph);
+
+        FlowResult result =
+                ff.calculate(
+                        source,
+                        target,
+                        false);
+
+        int[][] residual =
+                ff.getResidual();
+
+        boolean[] reachable =
+                findReachableVertices(
+                        source,
+                        residual);
+
+        System.out.println();
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "              MINIMUM CUT ANALYSIS");
+
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "\nReachable Papers:");
+
+        for (int i = 0;
+             i < graph.getPaperCount();
+             i++) {
+
+            if (reachable[i]) {
+
+                System.out.print(
+                        graph.getPaperId(i)
+                        + " ");
+            }
+        }
+
+        System.out.println();
+
+        System.out.println(
+                "\nCut Edges:");
+
+        int cutCapacity = 0;
+
+        for (int i = 0;
+             i < graph.getEdgeCount();
+             i++) {
+
+            int u =
+                    graph.getInternalIndex(
+                            graph.getSourceId(i));
+
+            int v =
+                    graph.getInternalIndex(
+                            graph.getTargetId(i));
+
+            if (reachable[u]
+                    && !reachable[v]) {
+
+                System.out.println(
+                        graph.getSourceId(i)
+                        + " -> "
+                        + graph.getTargetId(i)
+                        + " | Capacity = 1");
+
+                cutCapacity++;
+            }
+        }
+
+        System.out.println();
+
+        System.out.println(
+                "Minimum Cut Capacity = "
+                + cutCapacity);
+
+        System.out.println(
+                "Maximum Flow          = "
+                + result.maxFlow);
+
+        if (cutCapacity == result.maxFlow) {
+
+            System.out.println();
+            System.out.println(
+                    "Maximum Flow = Minimum Cut");
+        }
+
+        System.out.println(
+                "====================================================");
+    }
+
+    private static boolean[] findReachableVertices(
+            int source,
+            int[][] residual) {
+
+        boolean[] visited =
+                new boolean[
+                        graph.getPaperCount()];
+
+        int[] queue =
+                new int[
+                        graph.getPaperCount()];
+
+        int front = 0;
+        int rear = 0;
+
+        queue[rear++] = source;
+
+        visited[source] = true;
+
+        while (front < rear) {
+
+            int current =
+                    queue[front++];
+
+            for (int next = 0;
+                 next < graph.getPaperCount();
+                 next++) {
+
+                if (!visited[next]
+                        && residual[current][next] > 0) {
+
+                    visited[next] = true;
+
+                    queue[rear++] = next;
+                }
+            }
+        }
+
+        return visited;
+    }
+
+    private static void compareAlgorithms() {
+
+        if (!checkSourceTarget()) {
+            return;
+        }
+
+        int source =
+                graph.getInternalIndex(
+                        sourcePaper);
+
+        int target =
+                graph.getInternalIndex(
+                        targetPaper);
+
+        FordFulkerson ff =
+                new FordFulkerson(graph);
+
+        EdmondsKarp ek =
+                new EdmondsKarp(graph);
+
+        Dinic dinic =
+                new Dinic(graph);
+
+        FlowResult ffResult =
+                ff.calculate(
+                        source,
+                        target,
+                        false);
+
+        FlowResult ekResult =
+                ek.calculate(
+                        source,
+                        target,
+                        false);
+
+        FlowResult dinicResult =
+                dinic.calculate(
+                        source,
+                        target,
+                        false);
+
+        System.out.println();
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "             CITATION FLOW COMPARISON");
+
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "Source : " + sourcePaper);
+
+        System.out.println(
+                "Target : " + targetPaper);
+
+        System.out.println();
+
+        System.out.printf(
+                "%-20s %-15s %-15s%n",
+                "Algorithm",
+                "Maximum Flow",
+                "Time (ns)");
+
+        System.out.println(
+                "----------------------------------------------------");
+
+        System.out.printf(
+                "%-20s %-15d %-15d%n",
+                "Ford-Fulkerson",
+                ffResult.maxFlow,
+                ffResult.executionTime);
+
+        System.out.printf(
+                "%-20s %-15d %-15d%n",
+                "Edmonds-Karp",
+                ekResult.maxFlow,
+                ekResult.executionTime);
+
+        System.out.printf(
+                "%-20s %-15d %-15d%n",
+                "Dinic",
+                dinicResult.maxFlow,
+                dinicResult.executionTime);
+
+        System.out.println(
+                "----------------------------------------------------");
+
+        if (ffResult.maxFlow
+                == ekResult.maxFlow
+                && ekResult.maxFlow
+                == dinicResult.maxFlow) {
+
+            System.out.println(
+                    "All algorithms produced the same maximum flow.");
+        }
+
+        System.out.println(
+                "====================================================");
+    }
+
+    private static void displaySummary() {
+
+        if (!checkSourceTarget()) {
+            return;
+        }
+
+        int source =
+                graph.getInternalIndex(
+                        sourcePaper);
+
+        int target =
+                graph.getInternalIndex(
+                        targetPaper);
+
+        FordFulkerson ff =
+                new FordFulkerson(graph);
+
+        EdmondsKarp ek =
+                new EdmondsKarp(graph);
+
+        Dinic dinic =
+                new Dinic(graph);
+
+        FlowResult ffResult =
+                ff.calculate(
+                        source,
+                        target,
+                        false);
+
+        FlowResult ekResult =
+                ek.calculate(
+                        source,
+                        target,
+                        false);
+
+        FlowResult dinicResult =
+                dinic.calculate(
+                        source,
+                        target,
+                        false);
+
+        System.out.println();
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "             CITATION FLOW SUMMARY");
+
+        System.out.println(
+                "====================================================");
+
+        System.out.println(
+                "Dataset       : Cora Citation Network");
+
+        System.out.println(
+                "Source Paper  : " + sourcePaper);
+
+        System.out.println(
+                "Target Paper  : " + targetPaper);
+
+        System.out.println();
+
+        System.out.println(
+                "Ford-Fulkerson : "
+                + ffResult.maxFlow);
+
+        System.out.println(
+                "Edmonds-Karp   : "
+                + ekResult.maxFlow);
+
+        System.out.println(
+                "Dinic          : "
+                + dinicResult.maxFlow);
+
+        System.out.println();
+
+        if (ffResult.maxFlow
+                == ekResult.maxFlow
+                && ekResult.maxFlow
+                == dinicResult.maxFlow) {
+
+            System.out.println(
+                    "Verified Maximum Citation Flow : "
+                    + ffResult.maxFlow);
+        }
+
+        System.out.println();
+
+        System.out.println(
+                "Interpretation:");
+
+        System.out.println(
+                "The selected citation network permits "
+                + ffResult.maxFlow
+                + " units of capacity-respecting flow "
+                + "from the source paper to the target paper.");
+
+        System.out.println();
+
+        System.out.println(
+                "Note: This is a mathematical network-flow "
+                + "model of the citation graph, not a claim "
+                + "of literal information propagation.");
+
+        System.out.println(
+                "====================================================");
+    }
+}
